@@ -71,7 +71,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 .slider.round { border-radius: 31px; }
 .slider.round:before { border-radius: 50%; }
 
-.warning-banner { background-color: #FFF3CD; color: #856404; padding: 12px 15px; border-radius: 12px; margin-bottom: 20px; font-size: 14px; font-weight: 600; border-right: 4px solid var(--apple-yellow); }
+.warning-banner { padding: 15px; border-radius: 12px; margin-bottom: 20px; font-size: 15px; font-weight: 600; border-right: 4px solid var(--apple-red); display: flex; align-items: center; justify-content: space-between; }
 
 .full-page-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--apple-bg); z-index: 100; padding: 20px; overflow-y: auto; }
 .table-header-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
@@ -87,14 +87,21 @@ input:checked + .slider:before { transform: translateX(20px); }
 .status-bought .day-status { color: var(--apple-green); }
 .status-empty { background-color: #FFF9E6; border: 1px solid var(--apple-yellow); }
 .status-empty .day-status { color: var(--apple-orange); }
-.status-missed { border: 1px dashed var(--apple-red); }
-.status-missed .day-status { color: var(--apple-red); }
+.status-missed { background-color: #FFF; border: 1px dashed var(--apple-red); }
+
+.edit-controls { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px;}
+.edit-controls input { width: 65px; padding: 6px; text-align: center; border: 1px solid var(--apple-border); border-radius: 8px;}
+.edit-controls select { width: 85px; padding: 6px; border: 1px solid var(--apple-border); border-radius: 8px;}
+.btn-save-sm { background: var(--apple-blue); color: white; border: none; border-radius: 8px; padding: 6px 12px; font-weight: bold; cursor: pointer;}
 
 .history-item { background: var(--apple-card); border-radius: 16px; margin-bottom: 12px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
 .history-header { padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: var(--apple-card); }
-.history-header h4 { margin: 0; font-size: 16px; color: var(--apple-text-main); }
+.history-header h4 { margin: 0; font-size: 16px; color: var(--apple-text-main); line-height: 1.6;}
 .history-header .arrow { color: var(--apple-text-muted); font-size: 14px; transition: transform 0.3s; }
 .history-body { padding: 15px; background: var(--apple-bg); border-top: 1px solid var(--apple-border); }
 .history-item.active .arrow { transform: rotate(180deg); }
+
+/* أزرار إضافية خاصة بسلة المهملات */
+.trash-actions { display: flex; gap: 10px; margin-top: 15px; border-top: 1px solid var(--apple-border); padding-top: 15px; }
 
 .hidden { display: none !important; }
