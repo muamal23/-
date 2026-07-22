@@ -17,13 +17,15 @@
                 <label>تاريخ البداية:</label>
                 <input type="date" id="start-date">
             </div>
-            <!-- تمت إزالة تاريخ النهاية من هنا -->
             <div class="input-group">
-                <label>العدد الكلي للخبز للشهر/للفترة:</label>
+                <label>العدد الكلي للخبز للفترة:</label>
                 <input type="number" id="total-bread-input" placeholder="مثال: 350">
             </div>
             <button class="btn btn-primary" onclick="createNewSchedule()">بدء الجدول</button>
-            <button class="btn btn-secondary full-width" onclick="toggleHistorySection()" style="margin-top: 10px;">عرض المشتريات السابقة</button>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn btn-secondary" onclick="toggleHistorySection()" style="flex: 1;">المشتريات السابقة</button>
+                <button class="btn btn-warning" onclick="toggleTrashSection()" style="flex: 1; background-color: var(--apple-orange);">سلة المهملات</button>
+            </div>
         </section>
 
         <!-- الواجهة الرئيسية للتطبيق -->
@@ -62,9 +64,7 @@
                 </div>
             </div>
 
-            <div id="missing-days-warning" class="warning-banner hidden">
-                ⚠️ تنبيه: أنت تقوم الآن بتسجيل يوم فائت!
-            </div>
+            <div id="missing-days-warning" class="warning-banner hidden"></div>
 
             <div class="card action-card">
                 <h3 id="record-card-title">تسجيل الخبز ليوم</h3>
@@ -76,14 +76,17 @@
                     </select>
                 </div>
                 <div class="btn-row">
-                    <button class="btn btn-success" onclick="recordToday(true)">تسجيل العدد</button>
-                    <button class="btn btn-warning" onclick="recordToday(false)">لم أشتري (فارغ)</button>
+                    <button class="btn btn-success" id="btn-record-buy" onclick="recordToday(true)">تسجيل العدد</button>
+                    <button class="btn btn-warning" id="btn-record-empty" onclick="recordToday(false)">لم أشتري (فارغ)</button>
                 </div>
             </div>
 
             <button class="btn btn-secondary full-width" onclick="toggleTable()">عرض وتعديل الجدول الحالي</button>
-            <button class="btn btn-primary full-width" onclick="toggleHistorySection()" style="margin-top: 10px; background-color: var(--apple-blue);">عرض المشتريات السابقة</button>
-            <button class="btn btn-danger full-width" onclick="resetApp()" style="margin-top: 10px; background-color: transparent; color: var(--apple-red); border: 1px solid var(--apple-red);">حذف النظام والبدء من الصفر</button>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn btn-primary" onclick="toggleHistorySection()" style="flex: 1; background-color: var(--apple-blue);">المشتريات السابقة</button>
+                <button class="btn btn-warning" onclick="toggleTrashSection()" style="flex: 1; background-color: var(--apple-orange);">سلة المهملات</button>
+            </div>
+            <button class="btn btn-danger full-width" onclick="resetApp()" style="margin-top: 10px; background-color: transparent; color: var(--apple-red); border: 1px solid var(--apple-red);">حذف الجدول الحالي ونقله للمهملات</button>
         </section>
 
         <!-- روزنامة الجدول الحالي -->
@@ -101,8 +104,17 @@
                 <h2>المشتريات السابقة</h2>
                 <button class="btn-close" onclick="toggleHistorySection()">إغلاق</button>
             </div>
-            <div id="history-list" class="history-list">
-                <!-- سيتم توليد الجداول السابقة هنا -->
+            <div id="history-list" class="history-list"></div>
+        </section>
+
+        <!-- قسم سلة المهملات -->
+        <section id="trash-section" class="full-page-modal hidden">
+            <div class="table-header-controls">
+                <h2>سلة المهملات</h2>
+                <button class="btn-close" onclick="toggleTrashSection()">إغلاق</button>
+            </div>
+            <div id="trash-list" class="history-list">
+                <!-- سيتم توليد الجداول المحذوفة هنا -->
             </div>
         </section>
     </div>
