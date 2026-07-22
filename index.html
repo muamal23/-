@@ -5,38 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>تطبيق إدارة الخبز</title>
     <link rel="stylesheet" href="style.css">
-    <!-- استخدام خط مشابه لخطوط أبل -->
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
-        <!-- شاشة إعداد الجدول الجديد (تظهر إذا لم يكن هناك جدول) -->
+        <!-- شاشة إعداد الجدول الجديد -->
         <section id="setup-section" class="card hidden">
             <h2>إعداد جدول جديد</h2>
+            <p id="setup-hint" class="text-muted" style="margin-bottom: 15px; font-size: 14px;"></p>
             <div class="input-group">
                 <label>تاريخ البداية:</label>
                 <input type="date" id="start-date">
             </div>
+            <!-- تمت إزالة تاريخ النهاية من هنا -->
             <div class="input-group">
-                <label>تاريخ النهاية:</label>
-                <input type="date" id="end-date">
-            </div>
-            <div class="input-group">
-                <label>العدد الكلي للخبز للشهر:</label>
+                <label>العدد الكلي للخبز للشهر/للفترة:</label>
                 <input type="number" id="total-bread-input" placeholder="مثال: 350">
             </div>
             <button class="btn btn-primary" onclick="createNewSchedule()">بدء الجدول</button>
+            <button class="btn btn-secondary full-width" onclick="toggleHistorySection()" style="margin-top: 10px;">عرض المشتريات السابقة</button>
         </section>
 
         <!-- الواجهة الرئيسية للتطبيق -->
         <section id="main-dashboard" class="hidden">
-            <!-- الترويسة والتاريخ -->
             <header class="header-date">
                 <h1 id="today-day-name">اليوم</h1>
                 <p id="today-full-date">التاريخ</p>
             </header>
 
-            <!-- الإحصائيات -->
             <div class="stats-container">
                 <div class="stat-card">
                     <span class="stat-label">المتبقي</span>
@@ -48,7 +44,6 @@
                 </div>
             </div>
 
-            <!-- حالة الاشتراك (الفلوس والطحين) -->
             <div class="card status-card">
                 <div class="toggle-row">
                     <span class="toggle-label" id="money-label">فلوس الاشتراك (غير واصل)</span>
@@ -67,14 +62,12 @@
                 </div>
             </div>
 
-            <!-- تحذير الأيام المنسية / السابقة -->
             <div id="missing-days-warning" class="warning-banner hidden">
                 ⚠️ تنبيه: أنت تقوم الآن بتسجيل يوم فائت!
             </div>
 
-            <!-- إدخال بيانات اليوم -->
             <div class="card action-card">
-                <h3 id="record-card-title">تسجيل خبز ليوم</h3>
+                <h3 id="record-card-title">تسجيل الخبز ليوم</h3>
                 <div class="input-row">
                     <input type="number" id="daily-amount" placeholder="عدد الخبز">
                     <select id="daily-meal">
@@ -88,19 +81,28 @@
                 </div>
             </div>
 
-            <!-- زر عرض الجدول والتعديل -->
-            <button class="btn btn-secondary full-width" onclick="toggleTable()">عرض وتعديل الجدول</button>
-            <button class="btn btn-danger full-width" onclick="resetApp()" style="margin-top: 10px; background-color: transparent; color: var(--apple-red); border: 1px solid var(--apple-red);">حذف الجدول الحالي والبدء من جديد</button>
+            <button class="btn btn-secondary full-width" onclick="toggleTable()">عرض وتعديل الجدول الحالي</button>
+            <button class="btn btn-primary full-width" onclick="toggleHistorySection()" style="margin-top: 10px; background-color: var(--apple-blue);">عرض المشتريات السابقة</button>
+            <button class="btn btn-danger full-width" onclick="resetApp()" style="margin-top: 10px; background-color: transparent; color: var(--apple-red); border: 1px solid var(--apple-red);">حذف النظام والبدء من الصفر</button>
         </section>
 
-        <!-- روزنامة الجدول -->
-        <section id="table-section" class="hidden">
+        <!-- روزنامة الجدول الحالي -->
+        <section id="table-section" class="full-page-modal hidden">
             <div class="table-header-controls">
-                <h2>سجل الأيام</h2>
+                <h2>سجل الأيام الحالي</h2>
                 <button class="btn-close" onclick="toggleTable()">إغلاق</button>
             </div>
-            <div id="calendar-grid" class="calendar-grid">
-                <!-- سيتم توليد الأيام هنا برمجياً -->
+            <div id="calendar-grid" class="calendar-grid"></div>
+        </section>
+
+        <!-- قسم المشتريات السابقة -->
+        <section id="history-section" class="full-page-modal hidden">
+            <div class="table-header-controls">
+                <h2>المشتريات السابقة</h2>
+                <button class="btn-close" onclick="toggleHistorySection()">إغلاق</button>
+            </div>
+            <div id="history-list" class="history-list">
+                <!-- سيتم توليد الجداول السابقة هنا -->
             </div>
         </section>
     </div>
