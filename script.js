@@ -1,9 +1,10 @@
 let appData = {
     current: null, 
-    history: []    
+    history: [],
+    trash: [] // سلة المهملات
 };
 
-let currentRecordingDateStr = null; 
+let todayStrGlobal = null; 
 
 document.addEventListener("DOMContentLoaded", () => {
     loadData();
@@ -18,17 +19,23 @@ function setupTodayHeader() {
     
     document.getElementById("today-day-name").innerText = today.toLocaleDateString('ar-IQ', optionsDay);
     document.getElementById("today-full-date").innerText = today.toLocaleDateString('ar-IQ', optionsDate);
+    
+    todayStrGlobal = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, '0') + "-" + String(today.getDate()).padStart(2, '0');
 }
 
 function loadData() {
-    const saved = localStorage.getItem("breadAppStorage_v3");
+    const saved = localStorage.getItem("breadAppStorage_v5");
     if (saved) {
         appData = JSON.parse(saved);
+    }
+    // تهيئة سلة المهملات إن لم تكن موجودة في البيانات القديمة
+    if (!appData.trash) {
+        appData.trash = [];
     }
 }
 
 function saveData() {
-    localStorage.setItem("breadAppStorage_v3", JSON.stringify(appData));
+    localStorage.setItem("breadAppStorage_v5", JSON.stringify(appData));
 }
 
 function checkAppStatus() {
@@ -125,48 +132,63 @@ function updateSubscriptionText() {
 }
 
 function updateRecordingUI() {
-    let current = new Date(appData.current.startDate);
-    currentRecordingDateStr = null;
+    const titleEl = document.getElementById("record-card-title");
+    const btnBuy = document.getElementById("btn-record-buy");
+    const btnEmpty = document.getElementById("btn-record-empty");
+    const todayObj = new Date();
+    const dayName = todayObj.toLocaleDateString('ar-IQ', { weekday: 'long' });
 
-    // حلقة لا نهائية تقف عند أول يوم غير مسجل
-    while (true) {
-        const dStr = current.getFullYear() + "-" + String(current.getMonth() + 1).padStart(2, '0') + "-" + String(current.getDate()).padStart(2, '0');
-        if (!appData.current.daysRecord[dStr]) {
-            currentRecordingDateStr = dStr;
-            break;
-        }
-        current.setDate(current.getDate() + 1);
+    if (todayStrGlobal < appData.current.startDate) {
+        titleEl.innerText = "الجدول لم يبدأ بعد!";
+        disableInputs(true);
+    } else if (appData.current.daysRecord[todayStrGlobal]) {
+        titleEl.innerText = `🎉 تم تسجيل خبز اليوم (${dayName})`;
+        disableInputs(true);
+    } else {
+        titleEl.innerText = `تسجيل خبز اليوم (${dayName})`;
+        disableInputs(false);
     }
 
-    const titleEl = document.getElementById("record-card-title");
-    const warning = document.getElementById("missing-days-warning");
-    
-    if (currentRecordingDateStr) {
-        const parts = currentRecordingDateStr.split("-");
-        const d = new Date(parts[0], parts[1] - 1, parts[2]);
-        const dayName = d.toLocaleDateString('ar-IQ', { weekday: 'long' });
-        const month = d.getMonth() + 1;
-        const day = d.getDate();
-        
-        titleEl.innerText = `تسجيل خبز اليوم (${dayName} ${month}/${day})`;
-        document.getElementById("daily-amount").disabled = false;
-        document.getElementById("daily-meal").disabled = false;
+    let missedDateStr = null;
+    let d = new Date(appData.current.startDate);
+    const yesterday = new Date(todayObj);
+    yesterday.setDate(yesterday.getDate() - 1);
 
-        const today = new Date();
-        const todayStr = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, '0') + "-" + String(today.getDate()).padStart(2, '0');
-        
-        if (currentRecordingDateStr < todayStr) {
-            warning.classList.remove("hidden");
-            warning.innerText = `⚠️ تنبيه: أنت تقوم الآن بتسجيل يوم فائت!`;
-        } else {
-            warning.classList.add("hidden");
+    while (d <= yesterday) {
+        const dStr = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
+        if (!appData.current.daysRecord[dStr]) {
+            missedDateStr = dStr;
+            break; 
         }
+        d.setDate(d.getDate() + 1);
+    }
+
+    const warning = document.getElementById("missing-days-warning");
+    if (missedDateStr) {
+        const parts = missedDateStr.split("-");
+        const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+        const mDayName = dateObj.toLocaleDateString('ar-IQ', { weekday: 'long' });
+        
+        warning.innerHTML = `
+            <div>⚠️ نسيت تسجيل يوم (${mDayName} ${dateObj.getMonth()+1}/${dateObj.getDate()})</div>
+            <button class="btn-save-sm" style="background:white; color:var(--apple-red); border:1px solid var(--apple-red);" onclick="toggleTable()">تسجيل الآن</button>
+        `;
+        warning.style.backgroundColor = "#ffe5e5";
+        warning.style.color = "var(--apple-red)";
+        warning.classList.remove("hidden");
+    } else {
+        warning.classList.add("hidden");
     }
 }
 
-function recordToday(didBuy) {
-    if (!currentRecordingDateStr) return;
+function disableInputs(disabled) {
+    document.getElementById("daily-amount").disabled = disabled;
+    document.getElementById("daily-meal").disabled = disabled;
+    document.getElementById("btn-record-buy").style.display = disabled ? "none" : "block";
+    document.getElementById("btn-record-empty").style.display = disabled ? "none" : "block";
+}
 
+function recordToday(didBuy) {
     if (didBuy) {
         const amount = parseInt(document.getElementById("daily-amount").value);
         const meal = document.getElementById("daily-meal").value;
@@ -174,16 +196,40 @@ function recordToday(didBuy) {
             alert("يرجى إدخال عدد صحيح للخبز!");
             return;
         }
-        appData.current.daysRecord[currentRecordingDateStr] = { bought: true, amount: amount, meal: meal };
+        appData.current.daysRecord[todayStrGlobal] = { bought: true, amount: amount, meal: meal };
         document.getElementById("daily-amount").value = ""; 
     } else {
-        appData.current.daysRecord[currentRecordingDateStr] = { bought: false, amount: 0, meal: "" };
+        appData.current.daysRecord[todayStrGlobal] = { bought: false, amount: 0, meal: "" };
     }
 
     saveData();
     updateDashboard();
+    checkThresholdAndArchive();
+}
 
-    // فحص الإقفال التلقائي بعد التسجيل
+function savePastDay(dateStr) {
+    const amtInput = document.getElementById(`amt-${dateStr}`).value;
+    const mealInput = document.getElementById(`meal-${dateStr}`).value;
+    const amount = parseInt(amtInput);
+    
+    if (isNaN(amount) || amount <= 0) {
+        alert("أدخل رقماً صحيحاً!");
+        return;
+    }
+    appData.current.daysRecord[dateStr] = { bought: true, amount: amount, meal: mealInput };
+    saveData();
+    renderCurrentCalendar();
+    checkThresholdAndArchive();
+}
+
+function savePastDayEmpty(dateStr) {
+    appData.current.daysRecord[dateStr] = { bought: false, amount: 0, meal: "" };
+    saveData();
+    renderCurrentCalendar();
+    checkThresholdAndArchive();
+}
+
+function checkThresholdAndArchive() {
     setTimeout(() => {
         let consumed = 0;
         for (const date in appData.current.daysRecord) {
@@ -196,11 +242,9 @@ function recordToday(didBuy) {
     }, 300);
 }
 
-// دالة الأرشفة وإنشاء تاريخ الجدول الجديد
 function archiveCurrentSchedule() {
-    alert("🍞 اكتمل عدد الخبز الكلي! سيتم حفظ الجدول الحالي في المشتريات السابقة وبدء جدول جديد.");
+    alert("🍞 اكتمل عدد الخبز الكلي! سيتم حفظ الجدول وتفاصيله في المشتريات السابقة.");
     
-    // البحث عن آخر يوم تم الشراء فيه (وليس الأيام الفارغة)
     let lastBoughtStr = appData.current.startDate;
     for (const date in appData.current.daysRecord) {
         if (appData.current.daysRecord[date].bought && date > lastBoughtStr) {
@@ -208,18 +252,16 @@ function archiveCurrentSchedule() {
         }
     }
 
-    // تجهيز تاريخ اليوم الذي يليه
     const d = new Date(lastBoughtStr);
     d.setDate(d.getDate() + 1);
     const nextStartStr = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
 
-    // نقل الجدول الحالي للأرشيف
     appData.history.push(appData.current);
     appData.current = null;
     saveData();
 
-    // تجهيز الشاشة للجدول الجديد
-    document.getElementById("setup-hint").innerText = `آخر يوم تم شراء الخبز فيه كان (${lastBoughtStr}). تم تحديد تاريخ البداية الجديد تلقائياً ليكون اليوم الذي يليه.`;
+    document.getElementById("table-section").classList.add("hidden");
+    document.getElementById("setup-hint").innerText = `اكتمل الجدول السابق. آخر يوم اشتريت فيه كان (${lastBoughtStr}). تم تحديد تاريخ البداية الجديد تلقائياً.`;
     document.getElementById("start-date").value = nextStartStr;
     checkAppStatus();
 }
@@ -241,7 +283,7 @@ function renderCurrentCalendar() {
     if(!appData.current) return;
 
     const start = new Date(appData.current.startDate);
-    const end = new Date(currentRecordingDateStr); // نعرض فقط إلى غاية اليوم الحالي المطلوب تسجيله
+    const end = new Date(todayStrGlobal); 
     
     let current = new Date(start);
 
@@ -259,10 +301,23 @@ function renderCurrentCalendar() {
                 statusClass = "status-empty"; statusText = "فارغ (لم أشتري)";
             }
             contentHtml = `<div class="day-status">${statusText}</div>
-                           <button class="btn-close" onclick="editCurrentDay('${dStr}')" style="font-size:12px; margin-top:5px;">تعديل (حذف التسجيل)</button>`;
+                           <button class="btn-close" onclick="editCurrentDay('${dStr}')" style="font-size:12px; margin-top:5px;">حذف لتعديل اليوم</button>`;
         } else {
-            statusText = "اليوم الحالي المطلوب تسجيله";
-            contentHtml = `<div class="day-status" style="margin-bottom:8px; color: var(--apple-text-muted);">${statusText}</div>`;
+            statusClass = "status-missed";
+            statusText = "لم يتم التسجيل!";
+            contentHtml = `
+                <div class="day-status" style="margin-bottom:8px; color: var(--apple-red);">${statusText}</div>
+                <div class="edit-controls">
+                    <input type="number" id="amt-${dStr}" placeholder="العدد">
+                    <select id="meal-${dStr}">
+                        <option value="غداء">غداء</option>
+                        <option value="عشاء">عشاء</option>
+                        <option value="غداء وعشاء">غداء وعشاء</option>
+                    </select>
+                    <button class="btn-save-sm" onclick="savePastDay('${dStr}')">حفظ</button>
+                    <button class="btn-save-sm" style="background:var(--apple-orange);" onclick="savePastDayEmpty('${dStr}')">فارغ</button>
+                </div>
+            `;
         }
 
         const card = document.createElement("div");
@@ -274,22 +329,14 @@ function renderCurrentCalendar() {
 }
 
 function editCurrentDay(dateStr) {
-    if(confirm("سيتم مسح تسجيل هذا اليوم، وسيطلب منك النظام إدخاله من جديد. هل أنت متأكد؟")) {
+    if(confirm("سيتم مسح التسجيل لتتمكن من إدخاله من جديد. هل أنت متأكد؟")) {
         delete appData.current.daysRecord[dateStr];
-        
-        // مسح كل الأيام التي تليه حتى لا يختل التسلسل
-        for (const date in appData.current.daysRecord) {
-            if (date > dateStr) {
-                delete appData.current.daysRecord[date];
-            }
-        }
-        
         saveData();
         renderCurrentCalendar();
     }
 }
 
-// ----------------- قسم المشتريات السابقة (History) -----------------
+// ----------------- المشتريات السابقة (History) -----------------
 function toggleHistorySection() {
     const historySection = document.getElementById("history-section");
     if (historySection.classList.contains("hidden")) {
@@ -322,11 +369,15 @@ function renderHistoryList() {
             }
         }
 
+        const moneyStatus = schedule.moneyPaid ? "واصل ✅" : "غير واصل ❌";
+        const flourStatus = schedule.flourDelivered ? "واصل ✅" : "غير واصل ❌";
+
         const item = document.createElement("div");
         item.className = "history-item";
         item.innerHTML = `
             <div class="history-header" onclick="toggleHistoryAccordion(this)">
-                <h4>من ${schedule.startDate} إلى ${lastDate} <br><span style="font-size:12px; color:var(--apple-text-muted);">العدد الكلي: ${schedule.totalBread}</span></h4>
+                <h4>من ${schedule.startDate} إلى ${lastDate} <br>
+                <span style="font-size:13px; color:var(--apple-text-muted);">الكلي: ${schedule.totalBread} | الفلوس: ${moneyStatus} | الطحين: ${flourStatus}</span></h4>
                 <span class="arrow">▼</span>
             </div>
             <div class="history-body hidden">
@@ -373,13 +424,93 @@ function renderHistoryDays(schedule) {
         }
     });
 
-    if(html === "") html = "<p style='text-align:center;'>لا توجد بيانات مسجلة في هذا الجدول</p>";
+    if(html === "") html = "<p style='text-align:center;'>لا توجد بيانات مسجلة</p>";
     return html;
 }
 
+// ----------------- سلة المهملات (Trash) -----------------
 function resetApp() {
-    if(confirm("هل أنت متأكد من حذف النظام بالكامل (الجدول الحالي والمشتريات السابقة)؟ لا يمكن التراجع عن هذا الإجراء.")) {
-        localStorage.removeItem("breadAppStorage_v3");
+    if(confirm("هل أنت متأكد من إنهاء وإلغاء الجدول الحالي؟ سيتم نقله إلى سلة المهملات.")) {
+        appData.trash.push(appData.current);
+        appData.current = null;
+        saveData();
         location.reload(); 
+    }
+}
+
+function toggleTrashSection() {
+    const trashSection = document.getElementById("trash-section");
+    if (trashSection.classList.contains("hidden")) {
+        renderTrashList();
+        trashSection.classList.remove("hidden");
+    } else {
+        trashSection.classList.add("hidden");
+        checkAppStatus(); 
+    }
+}
+
+function renderTrashList() {
+    const list = document.getElementById("trash-list");
+    list.innerHTML = "";
+
+    if (appData.trash.length === 0) {
+        list.innerHTML = `<p style="text-align:center; color:var(--apple-text-muted); margin-top: 20px;">سلة المهملات فارغة.</p>`;
+        return;
+    }
+
+    const reversedTrash = [...appData.trash].reverse();
+
+    reversedTrash.forEach((schedule) => {
+        let consumed = 0;
+        for (const date in schedule.daysRecord) {
+            if (schedule.daysRecord[date].bought) {
+                consumed += schedule.daysRecord[date].amount;
+            }
+        }
+
+        const moneyStatus = schedule.moneyPaid ? "واصل ✅" : "غير واصل ❌";
+        const flourStatus = schedule.flourDelivered ? "واصل ✅" : "غير واصل ❌";
+
+        const item = document.createElement("div");
+        item.className = "history-item";
+        item.innerHTML = `
+            <div class="history-header" onclick="toggleHistoryAccordion(this)">
+                <h4>جدول محذوف (بدأ ${schedule.startDate}) <br>
+                <span style="font-size:13px; color:var(--apple-text-muted);">الكلي: ${schedule.totalBread} | مسجل: ${consumed}</span></h4>
+                <span class="arrow">▼</span>
+            </div>
+            <div class="history-body hidden">
+                <p style="font-size:14px; margin-bottom:10px;">حالة الفلوس: ${moneyStatus} <br> حالة الطحين: ${flourStatus}</p>
+                <div class="trash-actions">
+                    <button class="btn btn-primary" style="flex:1; padding:10px; border-radius:8px;" onclick="restoreFromTrash(${schedule.id})">استعادة الجدول</button>
+                    <button class="btn btn-danger" style="flex:1; padding:10px; border-radius:8px; background-color:var(--apple-red);" onclick="permanentDeleteFromTrash(${schedule.id})">حذف نهائي</button>
+                </div>
+            </div>
+        `;
+        list.appendChild(item);
+    });
+}
+
+function restoreFromTrash(id) {
+    if(appData.current) {
+        alert("لا يمكنك استعادة جدول بينما يوجد جدول حالي نشط. قم بإلغاء الجدول الحالي ونقله للمهملات أولاً.");
+        return;
+    }
+
+    const index = appData.trash.findIndex(t => t.id === id);
+    if (index > -1) {
+        appData.current = appData.trash[index];
+        appData.trash.splice(index, 1);
+        saveData();
+        alert("تم استعادة الجدول بنجاح بجميع تفاصيله!");
+        location.reload();
+    }
+}
+
+function permanentDeleteFromTrash(id) {
+    if(confirm("هل أنت متأكد من حذف هذا الجدول نهائياً؟ لا يمكن التراجع أبداً.")) {
+        appData.trash = appData.trash.filter(t => t.id !== id);
+        saveData();
+        renderTrashList();
     }
 }
